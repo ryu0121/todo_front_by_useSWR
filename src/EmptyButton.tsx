@@ -1,12 +1,11 @@
-import { Dispatch, memo } from 'react';
+import { memo, useContext } from 'react';
+import { AppContext } from './AppContext';
 
-type Props = {
-  dispatch: Dispatch<Action>;
-};
+export const EmptyButton = memo(() => {
+  const { dispatch } = useContext(AppContext);
 
-export const EmptyButton = memo((props: Props) => {
   const handleOnEmpty = () => {
-    props.dispatch({ type: 'empty' });
+    dispatch({ type: 'empty' });
   };
 
   return <button onClick={handleOnEmpty}>ごみ箱を空にする</button>;

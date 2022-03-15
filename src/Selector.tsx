@@ -1,15 +1,13 @@
-import { Dispatch, memo } from 'react';
+import { memo, useContext } from 'react';
+import { AppContext } from './AppContext';
 
-type Props = {
-  // ジェネリクスを使った関数型
-  // Action型を受け取ってvoid型を返す関数がDispatch
-  dispatch: Dispatch<Action>;
-};
+// dispatch が変わるまでは再レンダリングされない
+// dispatch が再宣言されることはないので、このコンポーネントは再レンダリングされることはない
+export const Selector = memo(() => {
+  const { dispatch } = useContext(AppContext);
 
-// 渡されるdispatchが毎回変わるので、memoで再レンダリングを防いでいる
-export const Selector = memo((props: Props) => {
   const handleOnFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    props.dispatch({ type: 'filter', filter: e.target.value as Filter });
+    dispatch({ type: 'filter', filter: e.target.value as Filter });
   };
 
   return (
