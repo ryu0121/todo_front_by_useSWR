@@ -1,22 +1,36 @@
 import { memo, useContext } from 'react';
+import { mutate } from 'swr';
 import { AppContext } from './AppContext';
+import putTodo from './crud/put';
+import deleteTodo from './crud/delete';
+import useTodo from './hooks/useTodo';
 
 export const FilteredTodos = memo(() => {
-  const { state, dispatch } = useContext(AppContext);
+  const { state } = useContext(AppContext);
+  const { todos }: {
+    todos: Todo[];
+  } = useTodo('todos');
 
-  const handleOnEdit = (id: number, value: string) => {
-    dispatch({ type: 'edit', id, value });
+  const handleOnRemove = async (todo: Todo) => {
+    const host = import.meta.env.VITE_HOST;
+    const newTodos = todos.map(t => t.id === todo.id ? { ...t, removed: !todo.removed } : t);
+    // false を指定しているとここでは再検証されない
+    // Refetch Mutation を使用すると、useSWR のキャッシュをローカルで更新できる
+    mutate(`${host}/todos`, newTodos, false);
+    await putTodo(todo, { removed: !todo.removed });
+    // key のみを指定することで、このkeyに対応するデータの状態をfetchしにいく
+    mutate(`${host}/todos`);
   };
 
-  const handleOnCheck = (id: number, checked: boolean) => {
-    dispatch({ type: 'check', id, checked });
-  };
+  const handleOnRemoveForever = async (todo: Todo) => {
+    const host = import.meta.env.VITE_HOST;
+    const newTodos = todos.filter(t => t.id !== todo.id);
+    mutate(`${host}/todos`, newTodos, false);
+    await deleteTodo(todo);
+    mutate(`${host}/todos`);
+  }
 
-  const handleOnRemove = (id: number, removed: boolean) => {
-    dispatch({ type: 'remove', id, removed });
-  };
-
-  const filteredTodos = state.todos.filter((todo) => {
+  const filteredTodos = todos.filter((todo) => {
     switch (state.filter) {
       case 'all':
         return !todo.removed;
@@ -36,21 +50,13 @@ export const FilteredTodos = memo(() => {
       {filteredTodos.map((todo) => {
         return (
           <li key={todo.id}>
-            <input
-              type="checkbox"
-              disabled={todo.removed}
-              checked={todo.checked}
-              onChange={() => handleOnCheck(todo.id, todo.checked)}
-            />
-            <input
-              type="text"
-              disabled={todo.checked || todo.removed}
-              value={todo.value}
-              onChange={(e) => handleOnEdit(todo.id, e.target.value)}
-            />
-            <button onClick={() => handleOnRemove(todo.id, todo.removed)}>
+            <span>{todo.content}</span>
+            <button onClick={() => handleOnRemove(todo)}>
               {todo.removed ? '復元' : '削除'}
             </button>
+            {
+              todo.removed ? <button onClick={() => handleOnRemoveForever(todo)}>完全消去</button> : null
+            }
           </li>
         );
       })}
